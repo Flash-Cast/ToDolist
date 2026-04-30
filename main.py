@@ -1,7 +1,12 @@
 from fastapi import FastAPI
+from pydantic import BaseModel
 from typing import List
 
 app = FastAPI()
+
+class User(BaseModel):
+    id: int
+    name: str
 
 # リハビリで作ったデータ
 users = [
@@ -20,5 +25,10 @@ def get_users(parity: int):
         return [user for user in users if user['id'] % 2 == 0]
     else:
         return [user for user in users if user['id'] % 2 != 0]
+    
+@app.post("/users")
+def creat_user(user: User):
+    users.append(user.dict())
+    return {"message": "ユーザーを登録しました", "user": user}
 
 # 起動コマンド（ターミナルで実行）: uvicorn main:app --reload
