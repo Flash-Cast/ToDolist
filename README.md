@@ -1,4 +1,0 @@
-TypeScriptの学習のために
-簡易的なただのToDolist
-
-実用性はあまりないよ
