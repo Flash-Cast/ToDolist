@@ -1,34 +1,52 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
+from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
 from pydantic import BaseModel
-from typing import List
+
+SQLALCHEMY_DATABASE_URL = "sqlite:///./test_web.db"
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread":False})
+SessionLocal = sessionmaker(autocommit = False, autoflush = False, bind = engine)
+Base = declarative_base()
+
+class UserDB(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String)
+
+Base.metadata.create_all(bind=engine)
+
+class UserSchema(BaseModel):
+    id: int
+    name: str
+    class Config:
+        orm_mode = True
+
+
+
 
 app = FastAPI()
 
-class User(BaseModel):
-    id: int
-    name: str
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-# リハビリで作ったデータ
-users = [
-    {"id": 1, "name": "Tanaka"},
-    {"id": 2, "name": "Sato"},
-    {"id": 3, "name": "Suzuki"}
-]
-
-# リハビリで作った関数を「Web用」に少し調整
 @app.get("/users/{parity}")
-def get_users(parity: int):
-    """
-    URLの末尾が /users/0 なら偶数、/users/1 なら奇数のユーザーを返す
-    """
+def read_users(parity: int, db: Session = Depends(get_db)):
+    all_users = db.query(UserDB).all()
     if parity == 0:
-        return [user for user in users if user['id'] % 2 == 0]
+        return [u for u in all_users if u.id % 2 == 0]
     else:
-        return [user for user in users if user['id'] % 2 != 0]
+        return [u for u in all_users if u.id % 2 != 0]
     
 @app.post("/users")
-def creat_user(user: User):
-    users.append(user.dict())
-    return {"message": "ユーザーを登録しました", "user": user}
+def create_user(user: UserSchema, db: Session = Depends(get_db)):
+    new_user = UserDB(id = user.id, name = user.name)
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
 
-# 起動コマンド（ターミナルで実行）: uvicorn main:app --reload
