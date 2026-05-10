@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ユーザー管理システム</title>
+    <style>
+        body { font-family: sans-serif; margin: 40px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #f4f4f4; }
+        .btn-delete { color: white; background-color: #ff4d4d; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px; }
+        .btn-delete:hover { background-color: #cc0000; }
+    </style>
+</head>
+<body>
+    <h1>ユーザー一覧</h1>
+    <div style="margin-bottom: 30px; padding: 20px; background-color: #eee; border-radius: 8px;">
+        <h3>新規ユーザー登録</h3>
+        <input type="number" id="new-id" placeholder="ID (数値)">
+        <input type="text" id="new-name" placeholder="名前">
+        <button onclick="addUser()" style="padding: 5px 15px; cursor: pointer;">追加</button>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>名前</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr id="row-{{ user.id }}">
+                <td>{{ user.id }}</td>
+                <td>{{ user.name }}</td>
+                <td>
+                    <!-- 削除ボタン：クリックするとJavaScriptの deleteUser 関数を呼ぶ -->
+                    <button class="btn-delete" onclick="deleteUser({{ user.id }})">削除</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <script>
+        async function deleteUser(userId){
+            if (!confirm('本当に削除しますか？')) return;
+
+            const response = await fetch(`/users/${userId}`,{
+                method: 'DELETE',
+            });
+
+            if (response.ok){
+                const row = document.getElementById(`row-${userId}`);
+                row.remove();
+                alert('削除しました')
+            } else {
+                alert('削除に失敗しました')
+            }
+        }
+
+        async function addUser(){
+            const idInput = document.getElementById('new-id');
+            const nameInput = document.getElementById('new-name');
+
+            const userData = {
+                id: parseInt(idInput.value),
+                name: nameInput.value
+            }
+
+            if (!userData.id || !userData.name){
+                alert('IDと名前を入力してください');
+                return;
+            }
+
+            const response = await fetch('/users',{
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(userData)
+            });
+
+            if (response.ok){
+                alert('登録に成功しました！');
+                location.reload();
+            } else {
+                const errorData = await response.json();
+                alert('エラーが発生しました:'+ (errorData.detail || '登録に失敗しました'))
+            }
+        }
+    </script>
+    <p><a href="/docs">APIドキュメント(/docs)へ移動</a></p>
+</body>
+</html>
