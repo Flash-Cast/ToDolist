@@ -41,3 +41,14 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
     db.delete(target)
     db.commit()
     return {"message": "deleted"}
+
+@app.put("/users/{user_id}")
+def update_user(user_id: int, user: schemas.UserSchema, db: Session = Depends(get_db)):
+    target_user = db.query(models.UserDB).filter(models.UserDB.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="ユーザーが見つかりませんでした")
+    
+    target_user.name = user.name
+    db.commit()
+    db.refresh(target_user)
+    return target_user
